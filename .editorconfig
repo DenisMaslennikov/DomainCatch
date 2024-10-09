@@ -1,0 +1,28 @@
+# В PyCharm ставим плагин EditorConfig чтобы этот файл работал
+# Check http://editorconfig.org for more information
+# This is the main config file for this project:
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_size = 2
+indent_style = space
+insert_final_newline = true
+tab_width = 4
+
+[*.py]
+max_line_length = 120
+indent_size = 4
+
+[*.vue]
+tab_width = 2
+
+[{Makefile,Caddyfile}]
+indent_style = tab  # Включаем Tab чтобы PyCharm не менял на пробелы
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.yml]
+max_line_length = 180
