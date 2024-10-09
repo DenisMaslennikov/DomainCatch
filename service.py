@@ -1,6 +1,8 @@
+from multiprocessing import Queue
 from os import PathLike
 import random
 from threading import Lock
+from time import sleep
 
 import config
 from logger import logger
@@ -19,10 +21,10 @@ def get_domain_list_from_file(path: PathLike) -> list[str]:
     return domains
 
 
-def check_domain(domain, domains_for_delete, lock, buy_domains_queue):
-    """Проверка домена через WHOIS с синхронизацией потоков"""
+def check_domain(domain: str, free_domains: set[str], buy_domains_queue: Queue) -> None:
+    """Проверка домена через WHOIS."""
+    zone = domain.split(".")[-1]
     while True:  # Запускаем бесконечный цикл для повторной проверки
-        zone = domain.split(".")[-1]
         if zone in config.WHOIS_SERVERS:
             whois_server = random.choice(config.WHOIS_SERVERS[zone])
             whois = whois_query_with_proxy(
@@ -31,11 +33,15 @@ def check_domain(domain, domains_for_delete, lock, buy_domains_queue):
                 whois_server.port,
             )
             if f'No match for "{domain.upper()}"' in whois:
-                with lock:
-                    if domain not in domains_for_delete:
-                        # Добавляем домен в очередь для покупки
-                        buy_domains_queue.put(domain)
-                        domains_for_delete.add(domain)
-                        logger.debug(f"Домен {domain} добавлен в очередь для покупки.")
-                        break  # Выход из цикла, так как домен помечен для удаления
-        sleep(1)  # Небольшая пауза перед повторной проверкой
+                if domain not in free_domains:
+                    # Добавляем домен в очередь для покупки
+                    buy_domains_queue.put(domain)
+                    free_domains.add(domain)
+                    logger.debug(f"Домен {domain} добавлен в очередь для покупки.")
+                break
+            if not "pendingDelete" in whois:
+                logger.debug(f"Домен {domain} не помечен к удалению")
+                break
+
+        # TODO Убрать когда будут прокси
+        sleep(config.WHOIS_TREAD_SLEEP_SECONDS)

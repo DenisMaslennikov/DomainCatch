@@ -5,6 +5,12 @@ from pathlib import Path
 Whois = namedtuple("Whois", "url port")
 Registrar = namedtuple("Registrar", "url module klass")
 
+# Максимальное количество доменов которое можно зарегистрировать за сессию.
+MAX_DOMAINS_FOR_REGISTRAR = 1
+
+# Для отладки без прокси. Время на которое засыпает поток между запросами к whois
+WHOIS_TREAD_SLEEP_SECONDS = 1
+
 # Список whois серверов в формате ("url", "port")
 WHOIS_SERVERS = {
     "com": [
@@ -27,6 +33,6 @@ ROOT_PATH = Path(__file__).parent
 
 DOMAINS_FILE = ROOT_PATH / "resources" / "domains.txt"
 
-THREADS_PER_DOMAIN = 3
+THREADS_PER_DOMAIN = 1
 
 LOG_LEVEL = logging.DEBUG
