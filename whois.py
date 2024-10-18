@@ -10,13 +10,14 @@ def whois_query_with_proxy(
     port: int = 43,
     proxy_host: Any = None,
     proxy_port: Any = None,
-    proxy_type: Any = None,
+    proxy_type: str = None,
     proxy_username: str = None,
     proxy_password: str = None,
 ):
+    """Проверка вхуиса через прокси."""
     # Настройка прокси
     if proxy_host and proxy_port:
-        if proxy_type == "socks5":
+        if proxy_type.lower() == "socks5":
             socks.set_default_proxy(
                 socks.SOCKS5,
                 proxy_host,
@@ -24,10 +25,22 @@ def whois_query_with_proxy(
                 username=proxy_username,
                 password=proxy_password,
             )
-        elif proxy_type == "socks4":
-            socks.set_default_proxy(socks.SOCKS4, proxy_host, proxy_port)
-        elif proxy_type == "http":
-            socks.set_default_proxy(socks.HTTP, proxy_host, proxy_port)
+        elif proxy_type.lower() == "socks4":
+            socks.set_default_proxy(
+                socks.SOCKS4,
+                proxy_host,
+                proxy_port,
+                username=proxy_username,
+                password=proxy_password,
+            )
+        elif proxy_type.lower() == "http":
+            socks.set_default_proxy(
+                socks.HTTP,
+                proxy_host,
+                proxy_port,
+                username=proxy_username,
+                password=proxy_password,
+            )
 
         socket.socket = socks.socksocket
         # Переопределяем сокеты для работы через прокси

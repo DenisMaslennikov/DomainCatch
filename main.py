@@ -1,14 +1,11 @@
 import concurrent.futures
 import multiprocessing
 import queue
-import random
-import threading
-from time import sleep
 
 import config
 from logger import logger
+from proxy import process_proxy_lists, alive_proxys
 from service import get_domain_list_from_file, check_domain
-from whois import whois_query_with_proxy
 
 buy_domains_queue = queue.Queue()
 
@@ -22,7 +19,7 @@ def purchase_domains(buy_domains_queue):
             break
         # Логика покупки домена
         domains_success_count += 1
-        logger.debug(f"Покупка домена {domain}...")
+        logger.info(f"Покупка домена {domain}...")
         if domains_success_count == config.MAX_DOMAINS_FOR_REGISTRAR:
             logger.debug("Все домены куплены выхожу")
             break
@@ -31,6 +28,8 @@ def purchase_domains(buy_domains_queue):
 def main() -> None:
     domains_for_check = get_domain_list_from_file(config.DOMAINS_FILE)
     free_domains = set()
+    process_proxy_lists()
+    logger.info(f"Собрано {len(alive_proxys)} прокси")
 
     # Создаем очередь для доменов для покупки
     buy_domains_queue = multiprocessing.Queue()
@@ -47,7 +46,11 @@ def main() -> None:
         # Создаем и отправляем задания на выполнение в пул потоков
         futures = {
             executor.submit(
-                check_domain, domain, free_domains, buy_domains_queue
+                check_domain,
+                domain,
+                free_domains,
+                buy_domains_queue,
+                list(alive_proxys),
             ): domain
             for domain in domains_for_check
             for _ in range(config.THREADS_PER_DOMAIN)
