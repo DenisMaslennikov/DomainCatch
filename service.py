@@ -25,14 +25,14 @@ def check_domain(
     domain: str,
     free_domains: set[str],
     buy_domains_queue: Queue,
-    proxy_list: list[Proxy] = None,
+    proxy_list: list[list[Proxy, int]] | None = None,
 ) -> None:
     """Проверка домена через WHOIS."""
     zone = domain.split(".")[-1]
-    proxy = None
+    proxy_with_exception_count = None
     while True:  # Запускаем бесконечный цикл для повторной проверки
         if proxy_list is not None:
-            proxy: Proxy | None = random.choice(proxy_list)
+            proxy_with_exception_count = random.choice(proxy_list)
 
         if zone in config.WHOIS_SERVERS:
             whois_server = random.choice(config.WHOIS_SERVERS[zone])
@@ -41,10 +41,23 @@ def check_domain(
                     domain,
                     whois_server.url,
                     whois_server.port,
-                    proxy_host=proxy.ip if proxy else None,
-                    proxy_port=int(proxy.port) if proxy else None,
-                    proxy_type=proxy.type if proxy else None,
+                    proxy_host=(
+                        proxy_with_exception_count[0].ip
+                        if proxy_with_exception_count
+                        else None
+                    ),
+                    proxy_port=(
+                        int(proxy_with_exception_count[0].port)
+                        if proxy_with_exception_count
+                        else None
+                    ),
+                    proxy_type=(
+                        proxy_with_exception_count[0].type
+                        if proxy_with_exception_count
+                        else None
+                    ),
                 )
+                proxy_with_exception_count[1] = 0
                 if f'No match for "{domain.upper()}"' in whois:
                     if domain not in free_domains:
                         # Добавляем домен в очередь для покупки
@@ -52,13 +65,19 @@ def check_domain(
                         free_domains.add(domain)
                         logger.info(f"Домен {domain} добавлен в очередь для покупки.")
                     break
-                if not "pendingDelete" in whois:
+                if (
+                    whois
+                    and "pendingDelete" not in whois
+                    and "Gateway Timeout" not in whois
+                ):
                     logger.info(f"Домен {domain} не помечен к удалению")
                     break
             except Exception as e:
-                proxy_list.remove(proxy)
+                proxy_with_exception_count[1] += 1
+                if proxy_with_exception_count[1] > config.MAX_EXCEPTIONS_PER_PROXY:
+                    proxy_list.remove(proxy_with_exception_count)
                 logger.debug(
-                    f"Ошибка подключения к серверу {whois_server} использованный прокси {proxy}. Домен {domain}. Текст "
+                    f"Ошибка подключения к серверу {whois_server} использованный прокси {proxy_with_exception_count}. Домен {domain}. Текст "
                     f"ошибки: {e}"
                 )
 

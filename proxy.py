@@ -6,13 +6,12 @@ from typing import Any
 import concurrent.futures
 
 import requests
-from bs4 import BeautifulSoup
 
 import config
 from logger import logger
 
 ProxyCheckingQueue = Queue()
-alive_proxys = set()
+alive_proxys = list()
 
 Proxy = namedtuple("Proxy", "ip port type")
 
@@ -39,7 +38,11 @@ class GeonodeParser(ProxyParser):
             if proxy["anonymityLevel"] == "transparent":
                 continue
             ProxyCheckingQueue.put(
-                Proxy(proxy["ip"], proxy["port"], proxy["protocols"][0])
+                Proxy(
+                    proxy["ip"],
+                    proxy["port"],
+                    proxy["protocols"][0],
+                )
             )
 
     def _get_all_pages(self):
@@ -75,20 +78,19 @@ def check_proxy(proxy: Proxy):
         "http": f"{proxy.type}://{proxy.ip}:{proxy.port}",
         "https": f"{proxy.type}://{proxy.ip}:{proxy.port}",
     }
-    i_try = 0
-    while i_try < config.TRY_PER_PROXY:
-        try:
-            _check_ip = requests.get(
-                config.PROXY_CHECK_URL, proxies=request_proxy, timeout=5
-            )
-            soup = BeautifulSoup(_check_ip.text, "lxml")
-            ip = soup.find("span", attrs={"id": "ip"}).text
-            if ip == proxy.ip:
-                alive_proxys.add(proxy)
-                logger.debug(f"Найден живой прокси {proxy}")
-        except Exception:
-            pass
-            i_try += 1
+
+    try:
+        _check_ip = requests.get(
+            config.PROXY_CHECK_URL, proxies=request_proxy, timeout=5
+        )
+        # soup = BeautifulSoup(_check_ip.text, "lxml")
+        # ip = soup.find("span", attrs={"id": "ip"}).text
+        # if ip == proxy.ip:
+        alive_proxys.append([proxy, 0])
+        logger.debug(f"Найден живой прокси {proxy}")
+
+    except Exception:
+        pass
         # logger.debug(f"Прокси мертв {proxy}")
 
 

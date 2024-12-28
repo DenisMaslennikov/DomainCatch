@@ -9,9 +9,17 @@ Registrar = namedtuple("Registrar", "url module klass")
 # Максимальное количество доменов которое можно зарегистрировать за сессию.
 MAX_DOMAINS_FOR_REGISTRAR = 9999
 
+# Максимальное количество ошибок на прокси после которого прокси считается мертвым.
+MAX_EXCEPTIONS_PER_PROXY = 10
+
+# Количество потоков проверки прокси
 PROXY_CHECKING_THREADS = 500
 
-TRY_PER_PROXY = 5
+# # Количество попыток на каждый прокси через которые он будет признан нерабочим
+# TRY_PER_PROXY = 5
+#
+# # Сколько времени спим между попытками проверки прокси
+# SLEEP_TIME_BETWEEN_PROXY_CHECKS = 1
 
 PROXY_LISTS = [
     ProxyList(
@@ -63,6 +71,6 @@ ROOT_PATH = Path(__file__).parent
 
 DOMAINS_FILE = ROOT_PATH / "resources" / "domains.txt"
 
-THREADS_PER_DOMAIN = 1
+THREADS_PER_DOMAIN = 20
 
 LOG_LEVEL = logging.INFO
